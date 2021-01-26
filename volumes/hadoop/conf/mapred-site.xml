@@ -32,7 +32,6 @@
     <value>/mr-history/done</value>
   </property>
 
-
   <property>
     <name>yarn.app.mapreduce.am.env</name>
     <value>HADOOP_MAPRED_HOME=/opt/hadoop</value>
@@ -48,16 +47,41 @@
     <value>HADOOP_MAPRED_HOME=/opt/hadoop</value>
   </property>
 
-
   <!-- Job History -->
   <property>
     <name>mapreduce.jobhistory.address</name>
     <value>master:9020</value>
   </property>
 
+  <property>
+    <name>mapreduce.jobhistory.keytab</name>
+    <value>/etc/keytabs/master/jhs.keytab</value>
+  </property>
+
+  <property>
+    <name>mapreduce.jobhistory.principal</name>
+    <value>jhs/_HOST@WEIJILAB.COM</value>
+  </property>
+
   <!-- Job History Webapp -->
   <property>
     <name>mapreduce.jobhistory.webapp.address</name>
     <value>master:9088</value>
+  </property>
+
+  <property>
+    <name>mapreduce.jobhistory.webapp.spnego-keytab-file</name>
+    <value>/etc/keytabs/master/HTTP.keytab</value>
+  </property>
+
+  <property>
+    <name>mapreduce.jobhistory.webapp.spnego-principal</name>
+    <value>HTTP/_HOST@WEIJILAB.COM</value>
+  </property>
+
+  <!-- SSL -->
+  <property>
+    <name>mapreduce.jobhistory.http.policy</name>
+    <value>HTTPS_ONLY</value>
   </property>
 </configuration>

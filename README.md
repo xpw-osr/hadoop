@@ -2,7 +2,7 @@
 
 ## TODO
 - [x] deploy hadoop with non-secure mode
-- [ ] deploy hadoop with secure mode (with Kerberos)
+- [x] deploy hadoop with secure mode (with Kerberos)
 - [ ] deploy Spark
 - [ ] deploy HBase
 - [ ] deploy Hive
@@ -12,7 +12,23 @@
 $ docker build -t hadoop . --build-arg HADOOP_VERSION=3.2.1 --build-arg APAHCHE_HADOOP_REPOSITORY=https://downloads.apache.org/hadoop/common
 ```
 
-## Port Settings
+## Example Configurations
+### Principals
+|Service|Component|Mandatory Principal Name|Mandatory Keytab File Name|Domain Folder Name|
+|---|---|---|---|---|
+|HDFS|NameNode|nn/master@WEIJILAB\.COM|nn.keytab|service|
+|HDFS|NameNode HTTP|HTTP/master@WEIJILAB\.COM|HTTP.keytab|service|
+|HDFS|SecondaryNameNode|sn/master@WEIJILAB\.COM|sn.keytab|service|
+|HDFS|SecondaryNameNode HTTP|HTTP/master@WEIJILAB\.COM|HTTP.keytab|service|
+|HDFS|DataNode|dn/master@WEIJILAB\.COM|dn.keytab|service|
+|MR2|History Server|jhs/master@WEIJILAB\.COM|jhs.keytab|service|
+|MR2|History Server HTTP|HTTP/master@WEIJILAB\.COM|HTTP.keytab|service|
+|YARN|ResourceManager|rm/master@WEIJILAB\.COM|rm.keytab|service|
+|YARN|NodeManager|nm/master@WEIJILAB\.COM|nm.keytab|service|
+|YARN|Timeline Server|tl/master@WEIJILAB\.COM|tl.keytab|service|
+
+
+### Port Settings
 Following are port settings in hadoop config xmls, you can change them with your want.
 
 |Config File|Field|Port|
@@ -26,14 +42,14 @@ Following are port settings in hadoop config xmls, you can change them with your
 |mapred-site.xml|mapreduce.jobhistory.address|9020|
 ||mapreduce.jobhistory.webapp.address|9088|
 
-## Web Pages
+### Web Pages
 Following Page URLs are based on above port settings
 
-* [Hadoop NameNode](http://localhost:5080/dfshealth.html#tab-overview)
-* [Hadoop Secondary Namenode](http://localhost:5088/status.html)
-* [Hadoop DataNode](http://localhost:6088/datanode.html)
-* [Hadoop Jobs](http://localhost:7088/cluster)
-* [Hadoop Job History](http://localhost:9088/jobhistory)
+* [Hadoop NameNode](http://localhost:5080)
+* [Hadoop Secondary Namenode](http://localhost:5088)
+* [Hadoop DataNode](http://localhost:6088)
+* [Hadoop Jobs](http://localhost:7088)
+* [Hadoop Job History](http://localhost:9088)
 
 ## Job Example
 ### Submit MapReduce Job
