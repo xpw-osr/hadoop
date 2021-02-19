@@ -12,6 +12,18 @@
 $ docker build -t hadoop . --build-arg HADOOP_VERSION=3.2.1 --build-arg APAHCHE_HADOOP_REPOSITORY=https://downloads.apache.org/hadoop/common
 ```
 
+## Deploy
+
+Before start deploy containers, you NEEd prepare following configuration files
+* CA certifications
+* SSH Key
+* Kerberos Configurations
+    * krb5.conf
+    * kdc.conf
+    * kadm5.acl
+    * init.sh
+* Hadoop Configurations
+
 ## Example Configurations
 ### Principals
 |Service|Component|Mandatory Principal Name|Mandatory Keytab File Name|Domain Folder Name|
