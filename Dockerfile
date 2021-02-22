@@ -195,6 +195,7 @@ RUN useradd -s ${USER_SHELL} -g hadoop jhs \
 RUN useradd -s ${USER_SHELL} -g hadoop HTTP \
     && echo "HTTP:hadoop" | chpasswd
 
+
 # for HDFS
 RUN adduser --home ${HDFS_HOME} --shell ${USER_SHELL} --ingroup hadoop hdfs \
     && echo "hdfs:hadoop" | chpasswd
@@ -242,6 +243,29 @@ RUN mkdir -p ${MAPRED_JH_TMP_FOLDER_PATH} \
 RUN mkdir -p ${MAPRED_JH_DONE_FOLDER_PATH} \
     && chown mapred:hadoop ${MAPRED_JH_DONE_FOLDER_PATH} \
     && chmod 755 ${MAPRED_JH_DONE_FOLDER_PATH}
+
+
+# change ownership and permission of 
+#   * /opt/hadoop/pids
+#   * /opt/hadoop/logs
+#   * /opt/hadoop/tmp
+# to make following processes can create pid files
+#   - following processes run as hdfs user
+#   * namenode
+#   * secondary namenode
+#   * datanode
+#   - following processes run as yarn user
+#   * resource manager
+#   * node manager
+RUN chown root:hadoop "${HADOOP_HOME}/${HADOOP_PID_FOLDER_NAME}" \
+    && chmod 775 "${HADOOP_HOME}/${HADOOP_PID_FOLDER_NAME}"
+
+RUN chown root:hadoop "${HADOOP_HOME}/${HADOOP_LOG_FOLDER_NAME}" \
+    && chmod 775 "${HADOOP_HOME}/${HADOOP_LOG_FOLDER_NAME}"
+
+RUN chown root:hadoop "${HADOOP_HOME}/${HADOOP_TMP_FOLDER_NAME}" \
+    && chmod 775 "${HADOOP_HOME}/${HADOOP_TMP_FOLDER_NAME}"
+    
 
 ######################################################################
 # configure container-executor
