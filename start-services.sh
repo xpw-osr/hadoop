@@ -93,7 +93,7 @@ su -c 'hdfs dfs -chown hdfs:hadoop /tmp' - hdfs
 su -c 'hdfs dfs -chmod 777 /tmp' - hdfs
 su -c 'hdfs dfs -mkdir /user' - hdfs
 su -c 'hdfs dfs -chown hdfs:hadoop /user' - hdfs
-su -c 'hdfs dfs -chmod 755 /user' - hdfs
+su -c 'hdfs dfs -chmod 775 /user' - hdfs
 su -c 'hdfs dfs -mkdir -p /logs' - hdfs
 su -c 'hdfs dfs -chown yarn:hadoop /logs' - hdfs
 su -c 'hdfs dfs -chmod 777 /logs' - hdfs
