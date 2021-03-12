@@ -1,12 +1,27 @@
 ARG BUILDER_HOME=/home/builder
 ARG BUILD_OUTPUT_FOLDER=${BUILDER_HOME}/dist
 
+ARG APACHE_HADOOP_REPOSITORY=https://downloads.apache.org/hadoop/common/
+ARG APACHE_HADOOP_VERSION=3.2.1
+ARG APACHE_HADOOP_CONF_FOLDER=./volumes/hadoop/conf
+
+ARG APACHE_SPARK_REPOSITORY=https://archive.apache.org/dist/spark
+ARG APACHE_SPARK_VERSION=3.0.1
+ARG APACHE_SPARK_FOR_HADOOP=hadoop3.2
+
 # build container-executor
 FROM ubuntu:20.04 AS builder
 
-ARG HADOOP_VERSION
-ARG APAHCHE_HADOOP_REPOSITORY
+ARG APACHE_HADOOP_LOCAL_SOURCE_PACKAGE
+ARG APACHE_HADOOP_VERSION
+ARG APACHE_HADOOP_REPOSITORY
+
+ARG PROTOBUF_LOCAL_SOURCE_PACKAGE
+
 ARG APT_SOURCES_LIST_FILE
+ARG APACHE_MAVEN_SETTINGS
+ARG LOCAL_M2_FOLDER
+
 ARG BUILDER_HOME
 ARG BUILD_OUTPUT_FOLDER
 
@@ -38,14 +53,20 @@ RUN if [ "${APT_SOURCES_LIST_FILE}" != "" ]; then \
 ######################################################################
 # add builder
 RUN adduser -S builder -s /bin/bash -h ${BUILDER_HOME}
-RUN mkdir -p ${WORKSPACE_FOLDER}
+RUN mkdir -p ${BUILDER_HOME}/.m2 \
+    && mkdir -p ${WORKSPACE_FOLDER}
+COPY ${APACHE_MAVEN_SETTINGS} "${BUILDER_HOME}/.m2/"
 
 ######################################################################
 # build
 
 # build protobuf 2.5.0
-RUN curl -L https://github.com/protocolbuffers/protobuf/releases/download/v2.5.0/protobuf-2.5.0.tar.gz --output protobuf-2.5.0.tar.gz \
-    && tar -xvf protobuf-2.5.0.tar.gz \
+COPY ${PROTOBUF_LOCAL_SOURCE_PACKAGE} protobuf-2.5.0.tar.gz
+RUN if [ ! -f "protobuf-2.5.0.tar.gz" ]; then \
+        curl -L https://github.com/protocolbuffers/protobuf/releases/download/v2.5.0/protobuf-2.5.0.tar.gz --output protobuf-2.5.0.tar.gz; \
+    fi
+
+RUN tar -xvf protobuf-2.5.0.tar.gz \
     && cd protobuf-2.5.0 \
     && ./autogen.sh \
     && ./configure --prefix=/usr \
@@ -54,10 +75,27 @@ RUN curl -L https://github.com/protocolbuffers/protobuf/releases/download/v2.5.0
 
 # build container-executor
 ENV NODEMANAGER_PROJECT_FOLDER hadoop-yarn-project/hadoop-yarn/hadoop-yarn-server/hadoop-yarn-server-nodemanager
-RUN curl -L ${APAHCHE_HADOOP_REPOSITORY}/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}-src.tar.gz --output /hadoop-src.tar.gz \
-    && tar -zxvf /hadoop-src.tar.gz -C ${WORKSPACE_FOLDER} --strip-components 1 \
-    && cd "${WORKSPACE_FOLDER}/${NODEMANAGER_PROJECT_FOLDER}" \
-    && mvn package -Pnative -Dcontainer-executor.conf.dir=/etc/ -DskipTests -Dtar 2>&1 \
+
+COPY ${APACHE_HADOOP_LOCAL_SOURCE_PACKAGE} hadoop-src.tar.gz
+RUN if [ ! -f "hadoop-src.tar.gz" ]; then \
+        curl -L ${APACHE_HADOOP_REPOSITORY}/hadoop-${APACHE_HADOOP_VERSION}/hadoop-${APACHE_HADOOP_VERSION}-src.tar.gz --output hadoop-src.tar.gz; \
+    fi
+
+# RUN tar -zxvf /hadoop-src.tar.gz -C ${WORKSPACE_FOLDER} --strip-components 1 \
+#     && cd "${WORKSPACE_FOLDER}/${NODEMANAGER_PROJECT_FOLDER}" \
+#     && if [ "${LOCAL_M2_FOLDER}" != "" ]; then \
+#             --mount=type=bind,source=${LOCAL_M2_FOLDER},target=${BUILDER_HOME}/.m2,rw mvn package -Pnative -Dcontainer-executor.conf.dir=/etc/ -DskipTests -Dtar 2>&1; \
+#         else \
+#             --mount=type=cache,target=${BUILDER_HOME}/.m2 mvn package -Pnative -Dcontainer-executor.conf.dir=/etc/ -DskipTests -Dtar 2>&1; \
+#         fi \
+#     && mkdir -p "${BUILD_OUTPUT_FOLDER}" \
+#     && cp "${WORKSPACE_FOLDER}/${NODEMANAGER_PROJECT_FOLDER}/target/native/target/usr/local/bin"/* "${BUILD_OUTPUT_FOLDER}/"
+
+RUN tar -zxvf /hadoop-src.tar.gz -C ${WORKSPACE_FOLDER} --strip-components 1
+WORKDIR ${WORKSPACE_FOLDER}/${NODEMANAGER_PROJECT_FOLDER}
+
+    # && cd "${WORKSPACE_FOLDER}/${NODEMANAGER_PROJECT_FOLDER}" \
+RUN --mount=type=cache,target=${BUILDER_HOME}/.m2 mvn package -Pnative -Dcontainer-executor.conf.dir=/etc/ -DskipTests -Dtar 2>&1 \
     && mkdir -p "${BUILD_OUTPUT_FOLDER}" \
     && cp "${WORKSPACE_FOLDER}/${NODEMANAGER_PROJECT_FOLDER}/target/native/target/usr/local/bin"/* "${BUILD_OUTPUT_FOLDER}/"
 
@@ -65,8 +103,16 @@ RUN curl -L ${APAHCHE_HADOOP_REPOSITORY}/hadoop-${HADOOP_VERSION}/hadoop-${HADOO
 
 FROM ubuntu:20.04
 
-ARG HADOOP_VERSION
-ARG APAHCHE_HADOOP_REPOSITORY
+ARG APACHE_HADOOP_LOCAL_BINARY_PACKAGE
+ARG APACHE_HADOOP_REPOSITORY
+ARG APACHE_HADOOP_VERSION
+ARG APACHE_HADOOP_CONF_FOLDER
+
+ARG APACHE_SPARK_LOCAL_BINARY_PACKAGE
+ARG APACHE_SPARK_REPOSITORY
+ARG APACHE_SPARK_VERSION
+ARG APACHE_SPARK_FOR_HADOOP
+
 ARG APT_SOURCES_LIST_FILE
 ARG BUILD_OUTPUT_FOLDER
 
@@ -93,9 +139,11 @@ ENV MAPRED_JH_DONE_FOLDER_PATH ${MAPRED_HOME}/done
 ENV CA_FOLDER /etc/ca
 ENV KEYTABS_FOLDER /opt/keytabs
 
+ENV SPARK_HOME=/opt/spark
+
 ENV USER_SHELL /usr/bin/bash
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
-ENV PATH $PATH:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin:${JAVA_HOME}/bin
+ENV PATH $PATH:${HADOOP_HOME}/bin:${SPARK_HOME}/bin:${JAVA_HOME}/bin
 
 VOLUME [ \
     "${HADOOP_HOME}/etc/hadoop", \
@@ -114,7 +162,8 @@ VOLUME [ \
     "${YARN_NM_LOG_FOLDER_PATH}", \
     "${MAPRED_HOME}/.ssh", \
     "${CA_FOLDER}", \
-    "${KEYTABS_FOLDER}" \
+    "${KEYTABS_FOLDER}", \
+    "${SPARK_HOME}/conf" \
 ]
 
 RUN echo "export PATH=${PATH}" >> /etc/profile
@@ -148,11 +197,15 @@ RUN sed -ie 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/g' /etc/ssh/ss
 ###############################################################
 # install hadoop
 
-RUN curl -L ${APAHCHE_HADOOP_REPOSITORY}/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz --output /hadoop.tar.gz \
-    && mkdir -p ${HADOOP_HOME} \
-    && tar -zxvf /hadoop.tar.gz -C ${HADOOP_HOME} --strip-components 1 \
+COPY ${APACHE_HADOOP_LOCAL_BINARY_PACKAGE} hadoop.tar.gz
+RUN if [ ! -f "hadoop.tar.gz" ]; then \
+        curl -L ${APACHE_HADOOP_REPOSITORY}/hadoop-${APACHE_HADOOP_VERSION}/hadoop-${APACHE_HADOOP_VERSION}.tar.gz --output hadoop.tar.gz; \
+    fi
+
+RUN mkdir -p ${HADOOP_HOME} \
+    && tar -zxvf hadoop.tar.gz -C ${HADOOP_HOME} --strip-components 1 \
     && chown -R root:root ${HADOOP_HOME} \
-    && rm -f /hadoop.tar.gz
+    && rm -f hadoop.tar.gz
 
 RUN bash -c "mkdir -p ${HADOOP_HOME}/{${HADOOP_TMP_FOLDER_NAME},${HADOOP_PID_FOLDER_NAME},${HADOOP_LOG_FOLDER_NAME}}"
 
@@ -245,28 +298,6 @@ RUN mkdir -p ${MAPRED_JH_DONE_FOLDER_PATH} \
     && chmod 755 ${MAPRED_JH_DONE_FOLDER_PATH}
 
 
-# change ownership and permission of 
-#   * /opt/hadoop/pids
-#   * /opt/hadoop/logs
-#   * /opt/hadoop/tmp
-# to make following processes can create pid files
-#   - following processes run as hdfs user
-#   * namenode
-#   * secondary namenode
-#   * datanode
-#   - following processes run as yarn user
-#   * resource manager
-#   * node manager
-RUN chown root:hadoop "${HADOOP_HOME}/${HADOOP_PID_FOLDER_NAME}" \
-    && chmod 775 "${HADOOP_HOME}/${HADOOP_PID_FOLDER_NAME}"
-
-RUN chown root:hadoop "${HADOOP_HOME}/${HADOOP_LOG_FOLDER_NAME}" \
-    && chmod 775 "${HADOOP_HOME}/${HADOOP_LOG_FOLDER_NAME}"
-
-RUN chown root:hadoop "${HADOOP_HOME}/${HADOOP_TMP_FOLDER_NAME}" \
-    && chmod 775 "${HADOOP_HOME}/${HADOOP_TMP_FOLDER_NAME}"
-    
-
 ######################################################################
 # configure container-executor
 
@@ -276,15 +307,27 @@ RUN chown root:hadoop ${HADOOP_HOME}/bin/container-executor
 RUN chmod 6050 ${HADOOP_HOME}/bin/container-executor
 
 # RUN cp -f ${HADOOP_HOME}/etc/hadoop/container-executor.cfg /etc/
-COPY ./volumes/hadoop/conf/container-executor.cfg /etc/
+COPY ${APACHE_HADOOP_CONF_FOLDER}/container-executor.cfg /etc/
 RUN chown root:hadoop /etc/container-executor.cfg
 RUN chmod 400 /etc/container-executor.cfg
 
+
+###############################################################
+# install spark
+COPY ${APACHE_SPARK_LOCAL_BINARY_PACKAGE} spark.tgz
+RUN if [ ! -f "spark.tgz" ]; then \
+        curl -L ${APACHE_SPARK_REPOSITORY}/spark-${APACHE_SPARK_VERSION}/spark-${APACHE_SPARK_VERSION}-bin-${APACHE_SPARK_FOR_HADOOP}.tgz --output spark.tgz; \
+    fi
+
+RUN mkdir -p ${SPARK_HOME} \
+    && tar -zxvf spark.tgz -C ${SPARK_HOME} --strip-components 1 \
+    && rm -f spark.tgz
+
+
 ###############################################################
 # copy scripts
-
-COPY ./launch.sh /usr/local/bin/start-services
+COPY ./start-services.sh /usr/local/bin/start-services
 RUN chmod 744 /usr/local/bin/start-services
 
 # ENTRYPOINT service ssh start && tail -f /dev/null
-ENTRYPOINT /usr/local/bin/start-services && tail -f /dev/null
+ENTRYPOINT /usr/local/bin/start-services && ${SPARK_HOME}/sbin/start-all.sh && tail -f /dev/null
