@@ -25,6 +25,8 @@ ARG LOCAL_M2_FOLDER
 ARG BUILDER_HOME
 ARG BUILD_OUTPUT_FOLDER
 
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64
+ENV PATH $PATH:${JAVA_HOME}/bin
 ENV WORKSPACE_FOLDER ${BUILDER_HOME}/workspace
 
 ######################################################################
@@ -42,7 +44,7 @@ RUN if [ "${APT_SOURCES_LIST_FILE}" != "" ]; then \
 
 RUN apt-get update \
     && apt-get -y upgrade \
-    && DEBIAN_FRONTEND="noninteractive" TZ="Asia/Shanghai" apt-get install -y build-essential curl git linux-headers-$(uname –r) maven autoconf libtool cmake \
+    && DEBIAN_FRONTEND="noninteractive" TZ="Asia/Shanghai" apt-get install -y build-essential curl git linux-headers-$(uname –r) maven autoconf libtool cmake openjdk-8-jdk \
     && apt-get clean \
     && rm -rf /var/cache/apt/archives/*
 

@@ -50,13 +50,19 @@ chmod -R 755 ${YARN_HOME}
 chown -R mapred:hadoop ${MAPRED_HOME}
 chmod -R 755 ${MAPRED_HOME}
 
+HADOOP_VERSION=$(hadoop version | grep '^Hadoop' | awk '{split($0,a," "); print a[2]}')
+
 # re-format namenode
 yes | hdfs namenode -format
 
 # start hdfs
-hdfs --daemon start namenode
-hdfs --daemon start secondarynamenode
-hdfs --daemon start datanode
+if [] "${HADOOP_VERSION}" = '2.7.7' ]; then
+  $HADOOP_HOME/sbin/start-dfs.sh
+else
+  hdfs --daemon start namenode
+  hdfs --daemon start secondarynamenode
+  hdfs --daemon start datanode
+fi
 
 # change ownership and permission hdfs folders
 
@@ -105,6 +111,10 @@ else
 fi
 
 # start yarn
-yarn --daemon start resourcemanager
-yarn --daemon start nodemanager
-mapred --daemon start historyserver
+if [] "${HADOOP_VERSION}" = '2.7.7' ]; then
+  $HADOOP_HOME/sbin/start-dfs.sh
+else
+  yarn --daemon start resourcemanager
+  yarn --daemon start nodemanager
+  mapred --daemon start historyserver
+fi
