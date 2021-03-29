@@ -56,7 +56,8 @@ HADOOP_VERSION=$(hadoop version | grep '^Hadoop' | awk '{split($0,a," "); print 
 yes | hdfs namenode -format
 
 # start hdfs
-if [] "${HADOOP_VERSION}" = '2.7.7' ]; then
+if [ "${HADOOP_VERSION}" = '2.7.7' ]; then
+  touch /opt/hadoop/etc/hadoop/slaves
   $HADOOP_HOME/sbin/start-dfs.sh
 else
   hdfs --daemon start namenode
@@ -66,52 +67,53 @@ fi
 
 # change ownership and permission hdfs folders
 
-
-if [ "${HADOOP_MODE}" = "secure" ]; then
-  kinit -kt /etc/keytabs/master/nn.keytab nn/master
-  hdfs dfs -chown hdfs:hadoop /
-  hdfs dfs -chmod 755 /
-  hdfs dfs -mkdir /tmp
-  hdfs dfs -chown hdfs:hadoop /tmp
-  hdfs dfs -chmod 777 /tmp
-  hdfs dfs -mkdir /user
-  hdfs dfs -chown hdfs:hadoop /user
-  hdfs dfs -chmod 755 /user
-  hdfs dfs -mkdir -p /logs
-  hdfs dfs -chown yarn:hadoop /logs
-  hdfs dfs -chmod 777 /logs
-  hdfs dfs -mkdir -p /mr-history
-  hdfs dfs -chown hdfs:hadoop /mr-history
-  hdfs dfs -chmod 777 /mr-history
-  hdfs dfs -mkdir -p /mr-history/tmp
-  hdfs dfs -chown mapred:hadoop /mr-history/tmp
-  hdfs dfs -chmod 777 /mr-history/tmp
-  hdfs dfs -mkdir -p /mr-history/done
-  hdfs dfs -chown mapred:hadoop /mr-history/done
-  hdfs dfs -chmod 750 /mr-history/done
-  kdestroy
-else
-  su -c 'hdfs dfs -chown hdfs:hadoop /' - hdfs
-  su -c 'hdfs dfs -chmod 755 /' - hdfs
-  su -c 'hdfs dfs -mkdir /tmp' - hdfs
-  su -c 'hdfs dfs -chown hdfs:hadoop /tmp' - hdfs
-  su -c 'hdfs dfs -chmod 777 /tmp' - hdfs
-  su -c 'hdfs dfs -mkdir /user' - hdfs
-  su -c 'hdfs dfs -chown hdfs:hadoop /user' - hdfs
-  su -c 'hdfs dfs -chmod 775 /user' - hdfs
-  su -c 'hdfs dfs -mkdir -p /logs' - hdfs
-  su -c 'hdfs dfs -chown yarn:hadoop /logs' - hdfs
-  su -c 'hdfs dfs -chmod 777 /logs' - hdfs
-  su -c 'hdfs dfs -mkdir -p /mr-history/tmp' - hdfs
-  su -c 'hdfs dfs -chown mapred:hadoop /mr-history/tmp' - hdfs
-  su -c 'hdfs dfs -chmod 777 /mr-history/tmp' - hdfs
-  su -c 'hdfs dfs -mkdir -p /mr-history/done' - hdfs
-  su -c 'hdfs dfs -chown mapred:hadoop /mr-history/done' - hdfs
-  su -c 'hdfs dfs -chmod 750 /mr-history/done' - hdfs
+if [ "${HADOOP_VERSION}" != '2.7.7' ]; then
+  if [ "${HADOOP_MODE}" = "secure" ]; then
+    kinit -kt /etc/keytabs/master/nn.keytab nn/master
+    hdfs dfs -chown hdfs:hadoop /
+    hdfs dfs -chmod 755 /
+    hdfs dfs -mkdir /tmp
+    hdfs dfs -chown hdfs:hadoop /tmp
+    hdfs dfs -chmod 777 /tmp
+    hdfs dfs -mkdir /user
+    hdfs dfs -chown hdfs:hadoop /user
+    hdfs dfs -chmod 755 /user
+    hdfs dfs -mkdir -p /logs
+    hdfs dfs -chown yarn:hadoop /logs
+    hdfs dfs -chmod 777 /logs
+    hdfs dfs -mkdir -p /mr-history
+    hdfs dfs -chown hdfs:hadoop /mr-history
+    hdfs dfs -chmod 777 /mr-history
+    hdfs dfs -mkdir -p /mr-history/tmp
+    hdfs dfs -chown mapred:hadoop /mr-history/tmp
+    hdfs dfs -chmod 777 /mr-history/tmp
+    hdfs dfs -mkdir -p /mr-history/done
+    hdfs dfs -chown mapred:hadoop /mr-history/done
+    hdfs dfs -chmod 750 /mr-history/done
+    kdestroy
+  else
+    su -c 'hdfs dfs -chown hdfs:hadoop /' - hdfs
+    su -c 'hdfs dfs -chmod 755 /' - hdfs
+    su -c 'hdfs dfs -mkdir /tmp' - hdfs
+    su -c 'hdfs dfs -chown hdfs:hadoop /tmp' - hdfs
+    su -c 'hdfs dfs -chmod 777 /tmp' - hdfs
+    su -c 'hdfs dfs -mkdir /user' - hdfs
+    su -c 'hdfs dfs -chown hdfs:hadoop /user' - hdfs
+    su -c 'hdfs dfs -chmod 775 /user' - hdfs
+    su -c 'hdfs dfs -mkdir -p /logs' - hdfs
+    su -c 'hdfs dfs -chown yarn:hadoop /logs' - hdfs
+    su -c 'hdfs dfs -chmod 777 /logs' - hdfs
+    su -c 'hdfs dfs -mkdir -p /mr-history/tmp' - hdfs
+    su -c 'hdfs dfs -chown mapred:hadoop /mr-history/tmp' - hdfs
+    su -c 'hdfs dfs -chmod 777 /mr-history/tmp' - hdfs
+    su -c 'hdfs dfs -mkdir -p /mr-history/done' - hdfs
+    su -c 'hdfs dfs -chown mapred:hadoop /mr-history/done' - hdfs
+    su -c 'hdfs dfs -chmod 750 /mr-history/done' - hdfs
+  fi
 fi
 
 # start yarn
-if [] "${HADOOP_VERSION}" = '2.7.7' ]; then
+if [ "${HADOOP_VERSION}" = '2.7.7' ]; then
   $HADOOP_HOME/sbin/start-dfs.sh
 else
   yarn --daemon start resourcemanager

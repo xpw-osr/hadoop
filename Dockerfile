@@ -331,5 +331,4 @@ RUN mkdir -p ${SPARK_HOME} \
 COPY ./start-services.sh /usr/local/bin/start-services
 RUN chmod 744 /usr/local/bin/start-services
 
-# ENTRYPOINT service ssh start && tail -f /dev/null
 ENTRYPOINT /usr/local/bin/start-services && ${SPARK_HOME}/sbin/start-all.sh && tail -f /dev/null
