@@ -1,0 +1,60 @@
+version: "3.8"
+
+services:
+  kerberos:
+    image: kerberos:latest
+    container_name: kerberos-kdc
+    environment:
+      - PRINCIPALS=tom:tom jerry:jerry nn/master@WEIJILAB.COM:nn HTTP/master@WEIJILAB.COM:http sn/master@WEIJILAB.COM:sn dn/master@WEIJILAB.COM:dn rm/master@WEIJILAB.COM:rm nm/master@WEIJILAB.COM:nm tl/master@WEIJILAB.COM jhs/master@WEIJILAB.COM:jhs
+      - REALM=WEIJILAB.COM
+    ports:
+      - "9022:22"
+    volumes:
+      - ./volumes/kerberos/krb5.conf:/etc/krb5.conf
+      - ./volumes/kerberos/kdc.conf:/var/lib/krb5kdc/kdc.conf
+      - ./volumes/kerberos/kadm5.acl:/var/lib/krb5kdc/kadm5.acl
+      - ./volumes/kerberos/keytabs:/opt/keytabs
+      - ./volumes/kerberos/logs:/var/log/kerberos
+      - ./volumes/kerberos/init.sh:/usr/local/bin/init.sh
+    hostname: "kdc"
+    networks:
+      - internal
+  hadoop:
+    image: hadoop:latest
+    container_name: hadoop
+    ports:
+      - "9000:9000"
+      - "5080:5080"
+      - "5088:5088"
+      - "6060:6060"
+      - "6088:6088"
+      - "7088:7088"
+      - "9020:9020"
+      - "9088:9088"
+    volumes:
+      - ./volumes/hadoop/conf:/opt/hadoop/etc/hadoop
+      - ./volumes/hadoop/tmp:/opt/hadoop/tmp
+      - ./volumes/hadoop/pids:/opt/hadoop/pids
+      - ./volumes/hadoop/logs:/opt/hadoop/logs
+      - ./volumes/hadoop/ca:/etc/ca
+      - ./volumes/kerberos/keytabs:/etc/keytabs
+      - ./volumes/kerberos/krb5.conf:/etc/krb5.conf
+      - ./volumes/home/root/ssh:/root/.ssh
+      - ./volumes/home/hdfs/ssh:/home/hdfs/.ssh
+      - ./volumes/home/hdfs/namenode:/home/hdfs/namenode
+      - ./volumes/home/hdfs/namesecondary:/home/hdfs/namesecondary
+      - ./volumes/home/hdfs/datanode:/home/hdfs/datanode
+      - ./volumes/home/hdfs/log:/home/hdfs/log
+      - ./volumes/home/yarn/ssh:/home/yarn/.ssh
+      - ./volumes/home/yarn/local:/home/yarn/local
+      - ./volumes/home/yarn/log:/home/yarn/log
+      - ./volumes/home/yarn/yarn_log:/home/yarn/yarn_log
+      - ./volumes/home/mapred/ssh:/home/mapred/.ssh
+    hostname: "master"
+    networks:
+      - internal
+    depends_on:
+      - kerberos
+networks:
+  internal: 
+    name: "internal_network"
